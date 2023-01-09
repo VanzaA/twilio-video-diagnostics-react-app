@@ -1,6 +1,5 @@
 import React, { useCallback, useRef } from 'react';
 import { ACTIONTYPE } from '../AppStateProvider';
-import axios from 'axios';
 import { PreflightTest, runPreflight } from 'twilio-video';
 
 export default function usePreflightTest(dispatch: React.Dispatch<ACTIONTYPE>) {
@@ -13,31 +12,33 @@ export default function usePreflightTest(dispatch: React.Dispatch<ACTIONTYPE>) {
 
     dispatch({ type: 'preflight-started' });
 
-    return axios('app/token')
-      .then((response) => {
-        const preflightTest = runPreflight(response.data.token);
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = decodeURIComponent(urlParams.get('token') ?? '');
+      const preflightTest = runPreflight(token);
 
-        preflightTestRef.current = preflightTest;
+      preflightTestRef.current = preflightTest;
 
-        preflightTest.on('progress', (progress) => {
-          dispatch({ type: 'preflight-progress', progress });
-        });
+      preflightTest.on('progress', (progress) => {
+        dispatch({ type: 'preflight-progress', progress });
+      });
 
-        preflightTest.on('completed', (report) => {
-          dispatch({ type: 'preflight-completed', report });
-          dispatch({ type: 'preflight-finished' });
-        });
-
-        preflightTest.on('failed', (error) => {
-          dispatch({ type: 'preflight-failed', error });
-          dispatch({ type: 'preflight-finished' });
-        });
-      })
-      .catch((error) => {
-        console.error('Error running the preflight test', error);
-        dispatch({ type: 'preflight-token-failed', error });
+      preflightTest.on('completed', (report) => {
+        dispatch({ type: 'preflight-completed', report });
         dispatch({ type: 'preflight-finished' });
       });
+
+      preflightTest.on('failed', (error) => {
+        dispatch({ type: 'preflight-failed', error });
+        dispatch({ type: 'preflight-finished' });
+      });
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Error running the preflight test', error);
+      dispatch({ type: 'preflight-token-failed', error: error as Error });
+      dispatch({ type: 'preflight-finished' });
+      return Promise.reject();
+    }
   }, [dispatch]);
 
   return { startPreflightTest } as const;

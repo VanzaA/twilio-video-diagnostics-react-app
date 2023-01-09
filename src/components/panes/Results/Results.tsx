@@ -1,4 +1,4 @@
-import { makeStyles, Button, Container, Grid, Typography, Theme, createStyles, Hidden } from '@material-ui/core';
+import { makeStyles, Button, Container, Grid, Typography, Theme, createStyles } from '@material-ui/core';
 import { ActivePane, useAppStateContext } from '../../AppStateProvider/AppStateProvider';
 import { CheckMark } from '../../../icons/CheckMark';
 import { DownloadIcon } from '../../../icons/DownloadIcon';
@@ -117,13 +117,13 @@ export function Results() {
               </Button>
             </div>
 
-            <Hidden mdDown>
+            <div>
               <img
                 src={testsPassed ? TestsPassed : SomeFailed}
                 alt={testsPassed ? 'Success' : 'Some Failed'}
                 className={classes.illustration}
               />
-            </Hidden>
+            </div>
           </Grid>
 
           <Grid item lg={5} className={classes.resultsList}>

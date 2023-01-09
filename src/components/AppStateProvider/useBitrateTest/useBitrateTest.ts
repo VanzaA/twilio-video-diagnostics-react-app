@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
-import axios from 'axios';
 import { testMediaConnectionBitrate, MediaConnectionBitrateTest } from '@twilio/rtc-diagnostics';
 import { ACTIONTYPE } from '../AppStateProvider';
+import { Buffer } from 'buffer';
 
 export default function useBitrateTest(dispatch: React.Dispatch<ACTIONTYPE>) {
   const bitrateTestRef = useRef<MediaConnectionBitrateTest>();
@@ -13,35 +13,42 @@ export default function useBitrateTest(dispatch: React.Dispatch<ACTIONTYPE>) {
 
     dispatch({ type: 'bitrate-test-started' });
 
-    return axios('app/turn-credentials')
-      .then((response) => {
-        const bitrateTest = testMediaConnectionBitrate({ iceServers: response.data.iceServers });
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const buff = Buffer.from(decodeURIComponent(urlParams.get('iceServers') ?? ''), 'base64');
+      console.log(buff.toString('ascii'));
 
-        bitrateTestRef.current = bitrateTest;
+      const iceServers = JSON.parse(buff.toString('ascii'));
 
-        bitrateTest.on(MediaConnectionBitrateTest.Events.Bitrate, (bitrate) => {
-          dispatch({ type: 'set-bitrate', bitrate });
-        });
+      const bitrateTest = testMediaConnectionBitrate({ iceServers: iceServers });
 
-        bitrateTest.on(MediaConnectionBitrateTest.Events.Error, (error) => {
-          dispatch({ type: 'set-bitrate-test-error', error });
-          dispatch({ type: 'bitrate-test-finished' });
-        });
+      bitrateTestRef.current = bitrateTest;
 
-        bitrateTest.on(MediaConnectionBitrateTest.Events.End, (report) => {
-          dispatch({ type: 'set-bitrate-test-report', report });
-          dispatch({ type: 'bitrate-test-finished' });
-        });
+      bitrateTest.on(MediaConnectionBitrateTest.Events.Bitrate, (bitrate) => {
+        dispatch({ type: 'set-bitrate', bitrate });
+      });
 
-        setTimeout(() => {
-          bitrateTest.stop();
-        }, 15000);
-      })
-      .catch((error) => {
-        console.error('Error running the bitrate test', error);
+      bitrateTest.on(MediaConnectionBitrateTest.Events.Error, (error) => {
         dispatch({ type: 'set-bitrate-test-error', error });
         dispatch({ type: 'bitrate-test-finished' });
       });
+
+      bitrateTest.on(MediaConnectionBitrateTest.Events.End, (report) => {
+        dispatch({ type: 'set-bitrate-test-report', report });
+        dispatch({ type: 'bitrate-test-finished' });
+      });
+
+      setTimeout(() => {
+        bitrateTest.stop();
+      }, 15000);
+
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Error running the bitrate test', error);
+      dispatch({ type: 'set-bitrate-test-error', error: error as Error });
+      dispatch({ type: 'bitrate-test-finished' });
+      return Promise.reject();
+    }
   }, [dispatch]);
 
   return { startBitrateTest } as const;

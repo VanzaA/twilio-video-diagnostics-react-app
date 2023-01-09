@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
-import axios, { AxiosError } from 'axios';
 import produce, { current } from 'immer';
 import Video, { PreflightTestReport } from 'twilio-video';
 import UAParser from 'ua-parser-js';
@@ -371,11 +370,11 @@ export const AppStateProvider: React.FC = ({ children }) => {
   useEffect(() => {
     navigator.mediaDevices.enumerateDevices().then((devices) => dispatch({ type: 'set-devices', devices }));
 
-    axios('app/token').catch((error: AxiosError) => {
-      if (error.response?.data?.error?.message === 'token server expired') {
-        dispatch({ type: 'set-app-is-expired' });
-      }
-    });
+    // axios('app/token').catch((error: AxiosError) => {
+    //   if (error.response?.data?.error?.message === 'token server expired') {
+    //     dispatch({ type: 'set-app-is-expired' });
+    //   }
+    // });
   }, []);
 
   return (
